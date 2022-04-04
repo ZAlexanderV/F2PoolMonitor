@@ -4,17 +4,17 @@ import os
 
 import requests
 
-MULT = 1000000000000
+TERRA = 1000000000000
 NT_HOUR_START = datetime.time(20, 0, 0)
 NT_HOUR_END = datetime.time(21, 10, 0)
 LOG_FILE = 'f2pool.log'
 CONFIG_FILE = 'test_config.json'
 
 
-def write_log(msg):
+def write_log(log_msg):
     exec_time = datetime.datetime.now()
     with open(LOG_FILE, mode='a', encoding='utf-8') as fdesc:
-        fdesc.write(f'{exec_time.strftime("%Y-%m-%d, %H:%M:%S")} - {msg}\n')
+        fdesc.write(f'{exec_time.strftime("%Y-%m-%d, %H:%M:%S")} - {log_msg}\n')
     return False
 
 
@@ -51,8 +51,23 @@ def check_alarms(stats: json) -> str:
 
 
 def generate_daily_stats(stats: json) -> str:
-    return f"Balance:{stats['balance']}, hashrate: {stats['hashrate']}, " \
-            f"{stats['worker_length_online']} online from {stats['worker_length']} overall."
+    maxhr = 0
+    minhr = 50 * TERRA
+    for hashr in stats['hashrate_history'].keys():
+        checked_hr = stats['hashrate_history'][hashr]
+        if minhr > checked_hr:
+            minhr = checked_hr
+        if maxhr < checked_hr:
+            maxhr = checked_hr
+    deviation = 100 - (minhr * 100 / maxhr)
+    daly_stats = f"DAILY:\n Balance:{stats['balance']:.6f}\n Last payout was: {stats['paid_date']} "\
+                 f"in amount:{stats['paid']:.6f}\n AVG Daily hashrate: " \
+                 f"{stats['hashes_last_day']/(stats['worker_length']*TERRA*86400):.2f}\n" \
+                 f" Hashrate deviation: {deviation:.2f}%\n Max hashrate: " \
+                 f"{maxhr/(stats['worker_length_online'] * TERRA):.2f} " \
+                 f"Min hashrate: {minhr/(stats['worker_length_online'] * TERRA):.2f}\n" \
+                 f" Miners {stats['worker_length_online']} online from {stats['worker_length']} overall."
+    return daly_stats
 
 
 def send_tg_message(tg_msg: str, tg_bot_token: str, tg_group_ip: str) -> bool:
@@ -90,7 +105,10 @@ if __name__ == '__main__':
     config_settings = load_config(CONFIG_FILE)
     if config_settings is None:
         exit(1)
-    user_status = get_user_stats('bitcoin', 'genat0sha')
+    with open('test1.json') as logp:
+        data = json.load(logp)
+    result = generate_daily_stats(data)
+    print(result)
     for curr in config_settings['currency'].keys():
         for wrk_user in config_settings['currency'][curr]:
             user_stats = get_user_stats(curr, wrk_user)
@@ -101,10 +119,8 @@ if __name__ == '__main__':
             if len(alarms) > 1:
                 send_tg_message(alarms, config_settings['tg_bot_token'], config_settings['tg_group_id'])
             if (datetime.datetime.now().time() >= NT_HOUR_START) and (datetime.datetime.now().time() <= NT_HOUR_END):
-                msg = generate_daily_stats(user_status)
+                msg = generate_daily_stats(user_stats)
                 send_tg_message(f'Stats for:{wrk_user} - {msg}', config_settings['tg_bot_token'],
                                 config_settings['tg_group_id'])
-    if send_healthcheck(config_settings['healthcheck_uuid']):
-        exit(0)
-    else:
+    if not send_healthcheck(config_settings['healthcheck_uuid']):
         exit(2)
