@@ -1,0 +1,11 @@
+{
+    "currency": {
+        "bitcoin": [
+            "demo1",
+            "demo2"
+        ]
+    },
+    "tg_bot_token": "telegram_bot_token",
+    "tg_group_id": "telegram_group_id_to_send_notifications",
+    "healthcheck_uuid": "healthcheck_io_uuid"
+}
