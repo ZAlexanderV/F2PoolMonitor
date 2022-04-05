@@ -77,13 +77,11 @@ def send_tg_message(tg_msg: str, tg_bot_token: str, tg_group_ip: str) -> bool:
         "text": tg_msg
     })
     res_json = result.json()
-    print(tg_msg)
-    print(res_json)
     if result.status_code != 200:
         write_log('Unable connect to telegram server.')
         return False
     if not res_json['ok']:
-        write_log(f"Error in communication. Description {res_json['description']}")
+        write_log(f"Error in communication. Description - {res_json['description']}")
         return False
     return True
 
