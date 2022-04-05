@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-
 import requests
 
 TERRA = 1000000000000
@@ -73,12 +72,18 @@ def generate_daily_stats(stats: json) -> str:
 def send_tg_message(tg_msg: str, tg_bot_token: str, tg_group_ip: str) -> bool:
     headers = {"Content-type": "application/json"}
     tg_url = f"https://api.telegram.org/bot{tg_bot_token}/sendMessage"
-    result = requests.post(tg_url, headers=headers, data={
+    result = requests.post(tg_url, headers=headers, params={
         "chat_id": tg_group_ip,
         "text": tg_msg
     })
+    res_json = result.json()
+    print(tg_msg)
+    print(res_json)
     if result.status_code != 200:
-        write_log('Unable to send telegram message.')
+        write_log('Unable connect to telegram server.')
+        return False
+    if not res_json['ok']:
+        write_log(f"Error in communication. Description {res_json['description']}")
         return False
     return True
 
