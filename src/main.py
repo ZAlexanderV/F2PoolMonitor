@@ -42,10 +42,10 @@ def get_miners_stats(currency: str, username: str, worker_name: str):
 def check_alarms(stats: json) -> str:
     resp = ""
     if stats['worker_length'] != stats['worker_length_online']:
-        resp = 'Not all miners online! {0} of {1} online'.format(stats['worker_length'], stats['worker_length_online'])
+        resp = 'Not all miners online! {0} of {1} online'.format(stats['worker_length_online'], stats['worker_length'])
     for wrk in stats['workers']:
         if wrk[1] == 0:
-            resp += 'Alarm! Device {0} has 0 hashrate!\r\n'.format(wrk[0])
+            resp += 'Alarm! \r\nDevice {0} has 0 hashrate!\r\n'.format(wrk[0])
     return resp
 
 
@@ -87,7 +87,6 @@ def send_tg_message(tg_msg: str, tg_bot_token: str, tg_group_ip: str) -> bool:
 
 
 def send_healthcheck(uuid: str) -> bool:
-    print('healthcheck')
     try:
         requests.get(f"https://hc-ping.com/{uuid}", timeout=10)
     except requests.RequestException as e:
@@ -108,10 +107,6 @@ if __name__ == '__main__':
     config_settings = load_config(CONFIG_FILE)
     if config_settings is None:
         exit(1)
-    with open('test1.json') as logp:
-        data = json.load(logp)
-    result = generate_daily_stats(data)
-    print(result)
     for curr in config_settings['currency'].keys():
         for wrk_user in config_settings['currency'][curr]:
             user_stats = get_user_stats(curr, wrk_user)
